@@ -35,7 +35,24 @@ EOT;
 $apiKey = 254937526;
 $apiKeyfrom = 'jumpaper';
 
-
+function isAllChinese($str){
+        //新疆等少数民族可能有·
+        if(strpos($str,'·')){
+            //将·去掉，看看剩下的是不是都是中文
+            $str=str_replace("·",'',$str);
+            if(preg_match('/^[\x7f-\xff]+$/', $str)){
+                return true;//全是中文
+            }else{
+                return false;//不全是中文
+            }
+        }else{
+            if(preg_match('/^[\x7f-\xff]+$/', $str)){
+                return true;//全是中文
+            }else{
+                return false;//不全是中文
+            }
+        }
+}
 $errorMaps = array(
     0 => '正常',
     20 => '要翻译的文本过长',
@@ -45,9 +62,14 @@ $errorMaps = array(
     60 => '无词典结果， 仅在获取词典结果生效'
 );
 
-if ($argc == 1 || $argv[2] == '-h' || $argv[2] == '--help') procEnd($help);
+if ($argc == 1 || @$argv[2] == '-h' || @$argv[2] == '--help') {
+    procEnd($help);
+}
 if ($argc > 1) {
     $q = implode(' ', array_slice($argv, 1));
+    if (isAllChinese($q)) {
+        $q = urlencode($q);
+    }
     $url = sprintf($urlFormat, $apiKeyfrom, $apiKey, $q);
     $res = file_get_contents($url);
     $resJ = json_decode($res, true);
@@ -55,12 +77,12 @@ if ($argc > 1) {
     $translation = '';
     $explains = '';
     $interTrans = '';
-    if ($resJ['errorCode']) procEnd($errorMaps[$resJ['errorCode']], $url);
-    if ($resJ['basic']['uk-phonetic']) $phonetic .= 'uk: ' . $resJ['basic']['uk-phonetic'] . "\n";
-    if ($resJ['basic']['us-phonetic']) $phonetic .= 'us: ' . $resJ['basic']['us-phonetic'];
-    if ($resJ['translation']) $translation = implode("\n", $resJ['translation']);
-    if ($resJ['basic']['explains']) $explains = implode("\n", $resJ['basic']['explains']);
-    if ($resJ['web']) {
+    if (@$resJ['errorCode']) procEnd($errorMaps[$resJ['errorCode']], $url);
+    if (@$resJ['basic']['uk-phonetic']) $phonetic .= 'uk: ' . $resJ['basic']['uk-phonetic'] . "\n";
+    if (@$resJ['basic']['us-phonetic']) $phonetic .= 'us: ' . $resJ['basic']['us-phonetic'];
+    if (@$resJ['translation']) $translation = implode("\n", $resJ['translation']);
+    if (@$resJ['basic']['explains']) $explains = implode("\n", $resJ['basic']['explains']);
+    if (@$resJ['web']) {
         $items = array();
         foreach ( $resJ['web'] as $item):
             $items[] = $item['key'] . ': ' . implode(',', $item['value']);
